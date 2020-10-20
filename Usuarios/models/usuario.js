@@ -5,8 +5,8 @@ const Schema = mongoose.Schema
 
 const UsuarioSchema = Schema({
     id: {type: Number, unique: true},
-    nombre: String,
-    apellido: String,
+    nombres: String,
+    apellidos: String,
     email: {type: String, unique: true},
     password: String,
     administrador: Boolean

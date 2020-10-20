@@ -5,6 +5,7 @@ const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
 
 const Usuario = require('../models/usuario')
+const Contador = require('../models/contador')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -12,15 +13,15 @@ const PORT = process.env.PORT || 3000
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-app.get('/', (req, res) => {
+app.get('/',(req, res) => {
     res.send({ message: "Microservicio de usuarios" })
 })
 
-app.get('/login', (req, res) => {
+app.get('/login/:email/:password', (req, res) => {
     console.log(req.body)
 
-    let usuario = req.body.email
-    let password = req.body.password
+    let usuario = req.params.email
+    let password = req.params.password
 
     Usuario.findOne({email: usuario, password: password}, (err, usuarioDB) => {
         if(err) res.status(500).send({message: `Error al loguearse: ${err}`})
@@ -31,7 +32,7 @@ app.get('/login', (req, res) => {
 
 app.get('/informacion', (req, res) => {
     Usuario.find({}, (err, usuario) => {
-        if (err) res.status(500).send({message: `Error al realizar la peticion: ${err}`})//500 Datos invalidos
+        if (err) res.status(500).send({message: `Error al realizar la peticion: ${err}`})
         if (!usuario) res.status(404).send({message: `Usuarios inexistentes: ${err}`})
         res.status(200).send({usuario})
     })
@@ -47,21 +48,27 @@ app.get('/jugadores/:id', (req, res) => {
     })
 })
 
-app.post('/jugadores', (req, res) => {
-    console.log('POST /jugadores')
-    console.log(req.body)
+app.post('/jugadores', async function(req, res){
+    let contador = await Contador.find()
+    let id = contador.length
+
+    let contador2 = new Contador()
+    contador2.contador = id
     
+    contador2.save((err, contadorStore) => {
+        if (err) res.status(401).send({message: `Error al guardar generador: ${err}`})//500 Datos invalidos
+    })
+
     let usuario = new Usuario()
-    usuario.id = req.body.id
-    usuario.nombre = req.body.nombre
-    usuario.apellido = req.body.apellido
+    usuario.id = id
+    usuario.nombres = req.body.nombres
+    usuario.apellidos = req.body.apellidos
     usuario.email = req.body.email
     usuario.password = req.body.password
     usuario.administrador = req.body.administrador
 
     usuario.save((err, usuarioStore) => {
         if (err) res.status(401).send({message: `Error al guardar nuevo usuario: ${err}`})//500 Datos invalidos
-        //if (usuarioStore.id) res.status(406).send({message: 'Datos invalidos'})
         res.status(201).send({usuario: usuarioStore})
     })
 })
@@ -83,10 +90,14 @@ app.delete('/jugadores/:id', (req, res) => {
         if (err) res.status(500).send({message: `Error al borrar usuario: ${err}`})
 
         usuario.remove(err => {
-            if (!usuario) res.status(500).send({message: `Usuario no encontrado: ${err}`})
+            if (!usuario) res.status(404).send({message: `Usuario no encontrado: ${err}`})
             res.status(200).send({message: 'El usuario ha sido eliminado'})
         })
     })
+})
+
+app.get('/prueba', (req, res)=>{
+    
 })
 
 mongoose.connect('mongodb://mongo:27017/usuario', (err, res) => {
